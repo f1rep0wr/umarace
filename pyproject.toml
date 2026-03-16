@@ -1,0 +1,16 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "umarace"
+version = "0.1.0"
+description = "Vectorized race outcome prediction for Umamusume Pretty Derby"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+dependencies = ["numpy>=1.26"]
+
+[project.optional-dependencies]
+calibration = ["scipy>=1.12"]
+dev = ["pytest>=8.0"]
