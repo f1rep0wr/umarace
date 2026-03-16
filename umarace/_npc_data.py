@@ -141,6 +141,21 @@ DEFAULT_GRADE_GROUPS: dict[str, int] = {
 }
 
 
+def resolve_npc_group_id(group_id: int) -> int:
+    """Translate race-level NPC group IDs to single_mode_npc pool IDs."""
+    if group_id in GROUP_INDICES or group_id >= 5000:
+        return group_id
+
+    hundreds = group_id // 100
+    ones = group_id % 10
+    mapped = hundreds * 10 + ones
+    if mapped in GROUP_INDICES:
+        return mapped
+
+    # 199 / 299 do not have a direct NPC pool; use the generic G1 bucket.
+    return DEFAULT_GRADE_GROUPS["G1"]
+
+
 def distance_category(distance: int) -> str:
     """Map race distance to category name.
 
@@ -259,7 +274,7 @@ def sample_field(
 
 def get_group_for_race(program_id: int) -> int:
     """Map a race program to its NPC group."""
-    return RACE_GROUP_MAP.get(program_id, 13)
+    return resolve_npc_group_id(RACE_GROUP_MAP.get(program_id, 13))
 
 
 def get_entry_num_for_race(program_id: int) -> int:

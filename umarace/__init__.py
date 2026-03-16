@@ -132,7 +132,7 @@ def predict(
         PlacementResult with win probability, expected placement, etc.
     """
     from ._npc_data import (
-        DEFAULT_GRADE_GROUPS, RACE_ENTRY_MAP, RACE_GROUP_MAP,
+        DEFAULT_GRADE_GROUPS, RACE_ENTRY_MAP, RACE_GROUP_MAP, resolve_npc_group_id,
         _get_max_rival_idx, sample_field,
     )
 
@@ -140,7 +140,7 @@ def predict(
 
     # Determine NPC group and field size
     if race_program_id is not None:
-        group_id = RACE_GROUP_MAP.get(race_program_id, 13)
+        group_id = resolve_npc_group_id(RACE_GROUP_MAP.get(race_program_id, 13))
         entry_num = RACE_ENTRY_MAP.get(race_program_id, 18)
     else:
         group_id = DEFAULT_GRADE_GROUPS.get(race_grade, 13)
@@ -183,7 +183,8 @@ def predict(
     mo[0, 0] = motivation
     mo[0, 1:] = npc_data[:, 9].astype(np.uint8)
 
-    cb = np.full((1, N), career_bonus, dtype=np.float32)
+    cb = np.full((1, N), 400.0, dtype=np.float32)
+    cb[0, 0] = career_bonus
 
     # Skill bonuses: trainee from skill_ids, NPCs from data
     sd = np.zeros((1, N), dtype=np.float32)
