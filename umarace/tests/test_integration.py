@@ -80,6 +80,25 @@ def test_power_monotonic():
     assert score_hi > score_lo
 
 
+def test_predict_career_bonus_only_helps_trainee():
+    low = umarace.predict(
+        stats=(900, 900, 900, 900, 900),
+        distance=2000,
+        race_grade="G1",
+        npc_seed=42,
+        career_bonus=0,
+    )
+    high = umarace.predict(
+        stats=(900, 900, 900, 900, 900),
+        distance=2000,
+        race_grade="G1",
+        npc_seed=42,
+        career_bonus=800,
+    )
+    assert high.score > low.score
+    assert high.win_probability >= low.win_probability
+
+
 def test_placement_distribution_sums_to_one():
     """Placement DP should produce a valid probability distribution."""
     import numpy as np
@@ -432,29 +451,28 @@ def test_recovery_surplus_runner_zero_effect():
 
 
 def test_recovery_borderline_runner_large_effect():
-    """Borderline runner (sta=500, 2400m): 5% recovery has large impact.
-
-    sustained=0.1256 without recovery, 0.4804 with → ~220 score delta.
-    """
+    """Borderline runner (sta=500, 2400m): 5% recovery has a clear impact."""
     from umarace.batch import score_batch
     args = _make_single_runner((600, 500, 600, 400, 400), distance=2400)
     score_no = score_batch(*args)
     score_with = score_batch(*args, recovery_hp_frac=np.array([[0.05]], dtype=np.float32))
     delta = float(score_with[0, 0] - score_no[0, 0])
-    assert delta > 200.0, f"Borderline runner should gain >200 score from 5% recovery, got {delta:.1f}"
+    assert delta > 120.0, f"Borderline runner should gain >120 score from 5% recovery, got {delta:.1f}"
 
 
 def test_recovery_deeply_starved_zero_effect():
-    """Deeply starved runner (sta=150, 2400m): 5% recovery still 0 effect.
-
-    headroom=-195.4, even with 5% recovery headroom=-55.8 → sustained stays 0.0.
-    Correct behavior: recovery can't fix fundamentally broken stamina.
-    """
+    """Deeply starved runner should benefit less than a borderline runner."""
     from umarace.batch import score_batch
-    args = _make_single_runner((600, 150, 600, 400, 400), distance=2400)
-    score_no = score_batch(*args)
-    score_with = score_batch(*args, recovery_hp_frac=np.array([[0.05]], dtype=np.float32))
-    assert float(score_with[0, 0]) == float(score_no[0, 0])
+    starved_args = _make_single_runner((600, 150, 600, 400, 400), distance=2400)
+    border_args = _make_single_runner((600, 500, 600, 400, 400), distance=2400)
+    starved_no = score_batch(*starved_args)
+    starved_with = score_batch(*starved_args, recovery_hp_frac=np.array([[0.05]], dtype=np.float32))
+    border_no = score_batch(*border_args)
+    border_with = score_batch(*border_args, recovery_hp_frac=np.array([[0.05]], dtype=np.float32))
+    starved_delta = float(starved_with[0, 0] - starved_no[0, 0])
+    border_delta = float(border_with[0, 0] - border_no[0, 0])
+    assert starved_delta >= 0.0
+    assert starved_delta < border_delta
 
 
 def test_recovery_zero_frac_identical_to_none():
@@ -477,6 +495,14 @@ def test_recovery_saturation():
     score_15 = score_batch(*args, recovery_hp_frac=np.array([[0.15]], dtype=np.float32))
     score_20 = score_batch(*args, recovery_hp_frac=np.array([[0.20]], dtype=np.float32))
     np.testing.assert_allclose(score_15, score_20)
+
+
+def test_low_stamina_retains_gradient_on_long_race():
+    scores = [
+        umarace.race_power(stats=(900, sta, 900, 400, 400), distance=2400)
+        for sta in (100, 300, 400)
+    ]
+    assert scores[0] < scores[1] < scores[2]
 
 
 def test_race_power_with_skill_ids():

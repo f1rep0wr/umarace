@@ -257,8 +257,14 @@ def effective_spurt_speed(
     race_duration = dist / np.maximum(b, 1.0)
     stoch_cost = race_duration * STOCHASTIC_HP_COST_PER_SECOND
 
-    # Sustained fraction
-    sustained = np.clip(headroom / np.maximum(stoch_cost, 1.0), 0.0, 1.0)
+    # Keep a gradient for sub-threshold stamina instead of flattening all
+    # negative headroom into the same exhausted state.
+    margin = 0.4 * stoch_cost
+    sustained = np.clip(
+        (headroom + margin) / np.maximum(stoch_cost + margin, 1.0),
+        0.0,
+        1.0,
+    )
 
     # Min speed when HP depleted (research §2.11)
     min_speed = 0.85 * b + np.sqrt(200.0 * guts) * 0.001

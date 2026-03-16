@@ -51,6 +51,14 @@ class TestRivalDataLoading:
         for prog_id, group_id in list(RACE_GROUP_MAP.items())[:5]:
             assert isinstance(group_id, int)
 
+    def test_race_group_map_resolves_to_real_pool(self):
+        from umarace._npc_data import GROUP_INDICES, RACE_GROUP_MAP, resolve_npc_group_id
+        for prog_id, group_id in list(RACE_GROUP_MAP.items())[:50]:
+            resolved = resolve_npc_group_id(group_id)
+            assert resolved in GROUP_INDICES, (
+                f"prog {prog_id}: raw group {group_id} resolved to missing pool {resolved}"
+            )
+
     def test_all_51_characters_have_data(self):
         from umarace._npc_data import RIVAL_CANDIDATES
         player_charas = set(k[0] for k in RIVAL_CANDIDATES.keys())
